@@ -1,0 +1,13 @@
+{
+  "name": "file-sharing",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Bipanshu Kr",
+  "license": "ISC",
+  "type": "commonjs"
+}
