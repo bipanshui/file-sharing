@@ -79,8 +79,8 @@ file-sharing/
 Create a `.env` file when needed:
 
 ```env
-PORT=3000
-BASE_URL=http://localhost:3000
+PORT=8080
+BASE_URL=http://localhost:8080
 MAX_FILE_SIZE_MB=50
 UPLOAD_DIR=uploads
 ```
