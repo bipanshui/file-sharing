@@ -1,101 +1,61 @@
-# File Sharing App (Node.js)
+# File Sharing App
 
-A simple file-sharing application built with Node.js.  
-This project is currently in the setup phase and will evolve into a secure app for uploading, sharing, and downloading files.
+Node.js + Express file sharing app with:
 
-## Goals
+- browser UI for upload and receive flows
+- local filesystem uploads
+- MongoDB metadata storage
+- duplicate detection by original filename + size
+- share links via UUID
+- optional email delivery to the receiver through SMTP
 
-- Upload files from a web interface or API
-- Generate shareable links for uploaded files
-- Download files using secure/public links
-- Add optional expiry, size limits, and access controls
-
-## Tech Stack (Planned)
-
-- **Runtime:** Node.js
-- **Framework:** Express.js
-- **Storage:** Local filesystem initially (cloud/object storage later)
-- **Database:** MongoDB or PostgreSQL (for metadata and links)
-- **Auth (optional):** JWT / session-based auth
-
-## Project Status
-
-`Early scaffold`  
-Core app implementation is not yet added.
-
-## Getting Started
-
-### 1. Prerequisites
-
-- Node.js 18+ (recommended)
-- npm 9+
-
-### 2. Install dependencies
+## Run
 
 ```bash
 npm install
-```
-
-### 3. Run the app
-
-```bash
+cp .env.example .env
 node index.js
 ```
 
-## Suggested Scripts
-
-Add these scripts to `package.json` as the project grows:
-
-```json
-{
-  "scripts": {
-    "dev": "node --watch index.js",
-    "start": "node index.js",
-    "test": "node --test"
-  }
-}
-```
-
-## Suggested Folder Structure
-
-```txt
-file-sharing/
-├─ index.js
-├─ src/
-│  ├─ app.js
-│  ├─ routes/
-│  ├─ controllers/
-│  ├─ services/
-│  ├─ middleware/
-│  └─ utils/
-├─ uploads/
-├─ .env.example
-├─ .gitignore
-└─ README.md
-```
-
-## Environment Variables (Planned)
-
-Create a `.env` file when needed:
+## Required Environment
 
 ```env
-PORT=8080
-BASE_URL=http://localhost:8080
-MAX_FILE_SIZE_MB=50
-UPLOAD_DIR=uploads
+MONGO_URL=mongodb://127.0.0.1:27017/file-sharing
+PORT=3000
+APP_BASE_URL=http://localhost:3000
 ```
 
-## Roadmap
+## Email Configuration
 
-1. Initialize Express server and health route
-2. Add file upload endpoint (e.g., `POST /files`)
-3. Save metadata and generate file IDs/links
-4. Add file download endpoint (e.g., `GET /files/:id`)
-5. Add link expiry and cleanup job
-6. Add auth and per-user file management
-7. Add tests and API documentation
+Receiver email sending is enabled only when all SMTP values are present:
 
-## License
+```env
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-brevo-smtp-login-email
+SMTP_PASS=your-brevo-smtp-key
+SMTP_FROM=File Sharing <verified-sender@yourdomain.com>
+```
 
-ISC
+If SMTP is not configured, uploads still work and the API returns the share link so it can be sent manually.
 
+## Main Routes
+
+- `GET /` renders the sender/receiver UI
+- `POST /api/files` uploads a file, saves metadata, and optionally emails the receiver
+- `GET /api/files/:uuid/meta` returns file metadata
+- `GET /files/:uuid` renders the download page
+- `GET /files/download/:uuid` downloads the stored file
+
+## Upload Behavior
+
+- Uploaded file field name: `myfile`
+- Optional form fields: `sender`, `receiver`
+- Duplicate uploads reuse the existing UUID and delete the new duplicate file from disk
+
+## Notes
+
+- Current duplicate detection is metadata-based, not hash-based
+- `uploads/` is created automatically if missing
+- The server still requires MongoDB connectivity before startup completes

@@ -6,10 +6,18 @@ const show = require("./routes/show.js");
 
 require("dotenv").config();
 const app = express();
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 3000;
 
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.get("/", (req, res) => {
+  res.render("home", {
+    appBaseUrl: process.env.APP_BASE_URL || `http://localhost:${PORT}`,
+  });
+});
 
 async function startServer() {
   try {

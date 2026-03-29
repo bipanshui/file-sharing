@@ -10,6 +10,7 @@ router.get("/:uuid", async (req, res) => {
         error: "File not found",
         file: null,
         downloadLink: null,
+        shareLink: null,
       });
     }
 
@@ -17,12 +18,14 @@ router.get("/:uuid", async (req, res) => {
       error: null,
       file,
       downloadLink: `/files/download/${file.uuid}`,
+      shareLink: `/files/${file.uuid}`,
     });
   } catch (error) {
     return res.status(500).render("download", {
       error: error.message,
       file: null,
       downloadLink: null,
+      shareLink: null,
     });
   }
 });
