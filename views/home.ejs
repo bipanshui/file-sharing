@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShareDrop // XFER PROTOCOL</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,800;1,400&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #020b07;
+      --bg2: #040f09;
+      --surface: rgba(0, 255, 65, 0.03);
+      --surface2: rgba(0, 255, 65, 0.06);
+      --border: rgba(0, 255, 65, 0.15);
+      --border-hot: rgba(0, 255, 65, 0.5);
+      --green: #00ff41;
+      --green-dim: #00cc33;
+      --green-muted: rgba(0, 255, 65, 0.45);
+      --green-faint: rgba(0, 255, 65, 0.08);
+      --amber: #ffb300;
+      --red: #ff2d55;
+      --text: #c8ffd4;
+      --text-muted: #5a8f66;
+      --text-dim: #2d5c38;
+      --glow: 0 0 20px rgba(0, 255, 65, 0.2), 0 0 60px rgba(0, 255, 65, 0.06);
+      --glow-hot: 0 0 30px rgba(0, 255, 65, 0.4), 0 0 80px rgba(0, 255, 65, 0.12);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      overflow-x: hidden;
+    }
+
+    /* Scanline effect */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.08) 2px,
+        rgba(0, 0, 0, 0.08) 4px
+      );
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    /* Grid background */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0, 255, 65, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 65, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 20px 48px;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      padding: 20px 28px;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+      animation: scan-h 3s ease-in-out infinite;
+    }
+
+    @keyframes scan-h {
+      0%, 100% { opacity: 0; transform: scaleX(0.2); }
+      50% { opacity: 1; transform: scaleX(1); }
+    }
+
+    .header-inner {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .logo-block { display: flex; flex-direction: column; gap: 6px; }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-icon {
+      width: 36px; height: 36px;
+      border: 1px solid var(--green);
+      display: grid; place-items: center;
+      font-size: 18px;
+      box-shadow: var(--glow);
+      animation: pulse-box 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-box {
+      0%, 100% { box-shadow: 0 0 10px rgba(0,255,65,0.2); }
+      50% { box-shadow: 0 0 25px rgba(0,255,65,0.5), inset 0 0 10px rgba(0,255,65,0.05); }
+    }
+
+    .logo-text {
+      font-size: clamp(1.4rem, 4vw, 2.4rem);
+      font-weight: 800;
+      color: var(--green);
+      letter-spacing: 0.08em;
+      text-shadow: 0 0 30px rgba(0,255,65,0.6);
+    }
+
+    .logo-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    .header-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      text-align: right;
+    }
+
+    .meta-row {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      letter-spacing: 0.12em;
+    }
+
+    .meta-row span { color: var(--green); }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border: 1px solid rgba(0,255,65,0.3);
+      background: rgba(0,255,65,0.05);
+      font-size: 0.68rem;
+      letter-spacing: 0.15em;
+      color: var(--green);
+      text-transform: uppercase;
+    }
+
+    .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: blink 1.2s step-start infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* ── SYSTEM BANNER ── */
+    .sys-banner {
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--green);
+      background: var(--surface);
+      padding: 12px 18px;
+      margin-bottom: 20px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .sys-item { display: flex; gap: 8px; }
+    .sys-key { color: var(--text-dim); }
+    .sys-val { color: var(--green-dim); }
+
+    /* ── GRID ── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 16px;
+    }
+
+    /* ── PANEL ── */
+    .panel {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: var(--border-hot);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 22px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,255,65,0.04);
+    }
+
+    .panel-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-icon {
+      width: 28px; height: 28px;
+      border: 1px solid var(--border-hot);
+      display: grid; place-items: center;
+      font-size: 13px;
+      color: var(--green);
+    }
+
+    .panel-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--green);
+    }
+
+    .panel-tag {
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+    }
+
+    .panel-body { padding: 22px; }
+
+    /* ── DROPZONE ── */
+    .dropzone {
+      position: relative;
+      border: 1px dashed rgba(0,255,65,0.25);
+      background: rgba(0,255,65,0.02);
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 150ms, background 150ms, box-shadow 150ms;
+      margin-bottom: 18px;
+    }
+
+    .dropzone:hover,
+    .dropzone.dragging {
+      border-color: var(--green);
+      background: rgba(0,255,65,0.05);
+      box-shadow: inset 0 0 30px rgba(0,255,65,0.04), 0 0 20px rgba(0,255,65,0.08);
+    }
+
+    .dropzone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .dz-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+      display: block;
+      opacity: 0.7;
+    }
+
+    .dz-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+
+    .dz-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      line-height: 1.7;
+    }
+
+    .file-chip {
+      display: none;
+      margin-top: 12px;
+      padding: 6px 14px;
+      border: 1px solid rgba(0,255,65,0.3);
+      background: rgba(0,255,65,0.06);
+      font-size: 0.75rem;
+      color: var(--green);
+      letter-spacing: 0.08em;
+    }
+
+    /* ── FIELDS ── */
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+
+    .field-label {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .field-label::before {
+      content: '//';
+      color: var(--text-dim);
+    }
+
+    input[type="email"],
+    input[type="text"] {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 140ms, box-shadow 140ms;
+      letter-spacing: 0.05em;
+    }
+
+    input::placeholder { color: var(--text-dim); }
+
+    input:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 1px rgba(0,255,65,0.15), inset 0 0 20px rgba(0,255,65,0.03);
+    }
+
+    /* ── BUTTONS ── */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      border: none;
+      cursor: pointer;
+      padding: 12px 22px;
+      transition: all 140ms;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary {
+      background: var(--green);
+      color: #020b07;
+    }
+
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 300ms;
+    }
+
+    .btn-primary:hover::before { left: 100%; }
+    .btn-primary:hover { background: #00ff41; box-shadow: 0 0 20px rgba(0,255,65,0.4); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--green-muted);
+      color: var(--text);
+    }
+
+    .btn-copy {
+      background: transparent;
+      color: var(--green);
+      border: 1px solid rgba(0,255,65,0.3);
+      font-size: 0.7rem;
+      padding: 8px 14px;
+    }
+
+    .btn-copy:hover { background: rgba(0,255,65,0.08); }
+
+    /* ── STATUS ── */
+    .status-box {
+      display: none;
+      padding: 12px 16px;
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      line-height: 1.6;
+      border-left: 2px solid;
+    }
+
+    .status-box[data-tone="info"] {
+      display: block;
+      background: rgba(0,255,65,0.04);
+      border-color: var(--text-dim);
+      color: var(--text-muted);
+    }
+
+    .status-box[data-tone="success"] {
+      display: block;
+      background: rgba(0,255,65,0.06);
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .status-box[data-tone="danger"] {
+      display: block;
+      background: rgba(255,45,85,0.06);
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    /* ── RESULT CARD ── */
+    .result-card {
+      display: none;
+      border: 1px solid var(--border);
+      background: rgba(0,255,65,0.02);
+      padding: 18px;
+      margin-top: 16px;
+      position: relative;
+    }
+
+    .result-card.active {
+      display: block;
+      animation: fadeIn 250ms ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .result-badge {
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border: 1px solid;
+    }
+
+    .result-badge.new { border-color: var(--green); color: var(--green); background: rgba(0,255,65,0.05); }
+    .result-badge.existing { border-color: var(--amber); color: var(--amber); background: rgba(255,179,0,0.05); }
+
+    .result-title { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+    .result-sub { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; }
+
+    .link-block {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .link-block code {
+      flex: 1 1 280px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--green-dim);
+      word-break: break-all;
+    }
+
+    .uuid-block {
+      padding: 8px 14px;
+      background: rgba(0,0,0,0.2);
+      border: 1px dashed var(--border);
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    /* ── SIDE PANELS ── */
+    .side-stack { display: flex; flex-direction: column; gap: 16px; }
+
+    /* ── TERMINAL LOG ── */
+    .term-log {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--border);
+      padding: 14px 16px;
+      font-size: 0.7rem;
+      font-family: 'Share Tech Mono', monospace;
+      color: var(--text-muted);
+      height: 130px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .term-log::-webkit-scrollbar { width: 4px; }
+    .term-log::-webkit-scrollbar-track { background: transparent; }
+    .term-log::-webkit-scrollbar-thumb { background: var(--border); }
+
+    .log-line { display: flex; gap: 10px; }
+    .log-ts { color: var(--text-dim); flex-shrink: 0; }
+    .log-msg { color: var(--text-muted); }
+    .log-msg.ok { color: var(--green-dim); }
+    .log-msg.err { color: var(--red); }
+    .log-msg.warn { color: var(--amber); }
+
+    /* ── FLOW STEPS ── */
+    .steps { display: flex; flex-direction: column; gap: 0; }
+
+    .step {
+      display: grid;
+      grid-template-columns: 40px 1fr;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid rgba(0,255,65,0.06);
+      position: relative;
+    }
+
+    .step:last-child { border-bottom: none; }
+
+    .step-num {
+      width: 28px; height: 28px;
+      border: 1px solid var(--border-hot);
+      display: grid; place-items: center;
+      font-size: 0.72rem;
+      color: var(--green);
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .step-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+
+    .step-desc {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    /* ── RECEIVE FORM ── */
+    .recv-form { display: flex; flex-direction: column; gap: 12px; }
+
+    /* ── ENDPOINTS ── */
+    .endpoint-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+
+    .endpoint {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+    }
+
+    .method {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      padding: 3px 8px;
+      flex-shrink: 0;
+    }
+
+    .method.post { background: rgba(0,255,65,0.15); color: var(--green); }
+    .method.get  { background: rgba(255,179,0,0.12); color: var(--amber); }
+
+    .endpoint-path {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      margin-top: 20px;
+      padding: 14px 22px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+    }
+
+    .footer span { color: var(--text-muted); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 860px) {
+      .main-grid { grid-template-columns: 1fr; }
+      .header-inner { grid-template-columns: 1fr; }
+      .header-meta { text-align: left; }
+    }
+
+    @media (max-width: 520px) {
+      .field-row { grid-template-columns: 1fr; }
+      .wrap { padding: 14px 12px 32px; }
+    }
+
+    /* scrollbar global */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); }
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo-block">
+        <div class="logo-row">
+          <div class="logo-icon">⬡</div>
+          <div class="logo-text">SHAREDROP</div>
+        </div>
+        <div class="logo-sub">// Secure File Transfer Protocol v2.1.0 //</div>
+      </div>
+      <div class="header-meta">
+        <div class="meta-row">SYS_TIME: <span id="sysTime">--:--:--</span></div>
+        <div class="meta-row">SESSION: <span id="sessionId">INIT...</span></div>
+        <div class="status-pill"><div class="dot"></div>NODE ONLINE</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SYS BANNER -->
+  <div class="sys-banner">
+    <div class="sys-item"><span class="sys-key">UPLOAD_API</span><span class="sys-val">POST /api/files</span></div>
+    <div class="sys-item"><span class="sys-key">RECEIVE_ROUTE</span><span class="sys-val">/files/:uuid</span></div>
+    <div class="sys-item"><span class="sys-key">BASE_URL</span><span class="sys-val"><%= appBaseUrl %></span></div>
+    <div class="sys-item"><span class="sys-key">ENC</span><span class="sys-val">TLS 1.3</span></div>
+    <div class="sys-item"><span class="sys-key">MODE</span><span class="sys-val">DUPLEX</span></div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+
+    <!-- LEFT: SEND -->
+    <div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title-row">
+            <div class="panel-icon">↑</div>
+            <div class="panel-title">TRANSMIT FILE</div>
+          </div>
+          <div class="panel-tag">// UPLOAD MODULE</div>
+        </div>
+        <div class="panel-body">
+
+          <form id="uploadForm">
+            <!-- DROPZONE -->
+            <div class="dropzone" id="dropzone">
+              <input id="fileInput" type="file" name="myfile" required />
+              <span class="dz-icon">⬡</span>
+              <div class="dz-title">DROP PAYLOAD HERE</div>
+              <div class="dz-sub">drag &amp; drop or click to select<br>duplicate uploads reuse existing UUID</div>
+              <div class="file-chip" id="fileChip"></div>
+            </div>
+
+            <!-- FIELDS -->
+            <div class="field-row">
+              <div class="field">
+                <label class="field-label">RECEIVER_ADDR</label>
+                <input type="email" name="receiver" placeholder="receiver@example.com" required />
+              </div>
+            </div>
+
+            <!-- ACTIONS -->
+            <div class="btn-row">
+              <button class="btn btn-primary" type="submit" id="submitButton">▶ EXECUTE TRANSFER</button>
+              <button class="btn btn-ghost" type="reset" id="resetButton">✕ CLEAR</button>
+            </div>
+
+            <!-- STATUS -->
+            <div class="status-box" id="statusBox"></div>
+
+            <!-- RESULT -->
+            <div class="result-card" id="resultCard" aria-live="polite">
+              <div class="result-header">
+                <div>
+                  <div class="result-title" id="resultHeading">TRANSFER COMPLETE</div>
+                  <div class="result-sub" id="resultText">Receiver link is ready.</div>
+                </div>
+                <span class="result-badge new" id="resultBadge">NEW_UPLOAD</span>
+              </div>
+              <div class="link-block">
+                <code id="shareLinkText"></code>
+                <button class="btn btn-copy" type="button" id="copyButton">[ COPY ]</button>
+                <a class="btn btn-copy" id="openLink" href="#" target="_blank" rel="noreferrer" style="text-decoration:none; display:inline-flex; align-items:center;">[ OPEN ]</a>
+              </div>
+              <div class="uuid-block" id="shareUuidText"></div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- TERMINAL LOG -->
+      <div class="panel" style="margin-top:16px;">
+        <div class="panel-header">
+          <div class="panel-title-row">
+            <div class="panel-icon">$</div>
+            <div class="panel-title">SYSTEM LOG</div>
+          </div>
+          <div class="panel-tag">// stdout</div>
+        </div>
+        <div class="panel-body" style="padding:0;">
+          <div class="term-log" id="termLog">
+            <div class="log-line"><span class="log-ts">00:00:00</span><span class="log-msg">sharedrop daemon initialized</span></div>
+            <div class="log-line"><span class="log-ts">00:00:00</span><span class="log-msg ok">node connection established</span></div>
+            <div class="log-line"><span class="log-ts">00:00:01</span><span class="log-msg">awaiting payload...</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: SIDE STACK -->
+    <div class="side-stack">
+
+      <!-- RECEIVE -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title-row">
+            <div class="panel-icon">↓</div>
+            <div class="panel-title">RECEIVE FILE</div>
+          </div>
+          <div class="panel-tag">// DOWNLOAD MODULE</div>
+        </div>
+        <div class="panel-body">
+          <form id="receiveForm" class="recv-form">
+            <div class="field">
+              <label class="field-label">LINK OR UUID</label>
+              <input type="text" id="receiveInput" placeholder="https://... or raw uuid" />
+            </div>
+            <div class="btn-row" style="margin-bottom:0;">
+              <button class="btn btn-primary" type="submit" style="width:100%; text-align:center; justify-content:center;">▶ OPEN PAYLOAD</button>
+            </div>
+            <div style="font-size:0.68rem; color:var(--text-dim); line-height:1.7; letter-spacing:0.06em; margin-top:8px;">
+              // paste a full URL or bare UUID — path segment is extracted automatically
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ENDPOINTS -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title-row">
+            <div class="panel-icon">⌘</div>
+            <div class="panel-title">API ENDPOINTS</div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="endpoint-list">
+            <div class="endpoint">
+              <span class="method post">POST</span>
+              <span class="endpoint-path">/api/files</span>
+            </div>
+            <div class="endpoint">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/files/:uuid</span>
+            </div>
+            <div class="endpoint">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/files/:uuid/meta</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FLOW -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title-row">
+            <div class="panel-icon">→</div>
+            <div class="panel-title">EXEC FLOW</div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="steps">
+            <div class="step">
+              <div><div class="step-num">01</div></div>
+              <div>
+                <div class="step-title">UPLOAD / CACHE HIT</div>
+                <div class="step-desc">Payload is sent to the upload API. Duplicates return the existing UUID without re-transmit.</div>
+              </div>
+            </div>
+            <div class="step">
+              <div><div class="step-num">02</div></div>
+              <div>
+                <div class="step-title">PROPAGATE LINK</div>
+                <div class="step-desc">Copy or open the generated URL if you want to share it manually with the receiver.</div>
+              </div>
+            </div>
+            <div class="step">
+              <div><div class="step-num">03</div></div>
+              <div>
+                <div class="step-title">DOWNLOAD</div>
+                <div class="step-desc">Paste any UUID or link in the receive module to land on the download screen.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div>// backend governs validation, delivery &amp; mail behavior. this interface handles browser-side ops only.</div>
+    <span>SHAREDROP_XFER_PROTOCOL // v2.1.0</span>
+  </div>
+
+</div>
+
+<script>
+  // ── CLOCK & SESSION
+  const sessionId = Math.random().toString(36).slice(2, 10).toUpperCase();
+  document.getElementById('sessionId').textContent = sessionId;
+
+  function tick() {
+    const now = new Date();
+    document.getElementById('sysTime').textContent =
+      now.toTimeString().slice(0, 8);
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  // ── LOGGER
+  const termLog = document.getElementById('termLog');
+  function log(msg, type = '') {
+    const now = new Date().toTimeString().slice(0, 8);
+    const line = document.createElement('div');
+    line.className = 'log-line';
+    line.innerHTML = `<span class="log-ts">${now}</span><span class="log-msg ${type}">${msg}</span>`;
+    termLog.appendChild(line);
+    termLog.scrollTop = termLog.scrollHeight;
+  }
+
+  // ── REFS
+  const uploadForm    = document.getElementById('uploadForm');
+  const fileInput     = document.getElementById('fileInput');
+  const dropzone      = document.getElementById('dropzone');
+  const fileChip      = document.getElementById('fileChip');
+  const statusBox     = document.getElementById('statusBox');
+  const resultCard    = document.getElementById('resultCard');
+  const resultBadge   = document.getElementById('resultBadge');
+  const resultHeading = document.getElementById('resultHeading');
+  const resultText    = document.getElementById('resultText');
+  const shareLinkText = document.getElementById('shareLinkText');
+  const shareUuidText = document.getElementById('shareUuidText');
+  const copyButton    = document.getElementById('copyButton');
+  const openLink      = document.getElementById('openLink');
+  const submitButton  = document.getElementById('submitButton');
+  const receiveForm   = document.getElementById('receiveForm');
+  const receiveInput  = document.getElementById('receiveInput');
+
+  function setStatus(tone, message) {
+    statusBox.dataset.tone = tone;
+    statusBox.textContent = `[${tone.toUpperCase()}] ${message}`;
+  }
+
+  function clearStatus() {
+    statusBox.dataset.tone = '';
+    statusBox.textContent = '';
+  }
+
+  function setSelectedFile(file) {
+    if (!file) { fileChip.style.display = 'none'; fileChip.textContent = ''; return; }
+    const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+    fileChip.style.display = 'inline-flex';
+    fileChip.textContent = `${file.name}  //  ${sizeMb} MB`;
+    log(`file selected: ${file.name} (${sizeMb} MB)`, 'ok');
+  }
+
+  function showResult(payload) {
+    resultCard.classList.add('active');
+    const alreadyExists = Boolean(payload.existing);
+    resultBadge.textContent    = alreadyExists ? 'CACHE_HIT' : 'NEW_UPLOAD';
+    resultBadge.className      = `result-badge ${alreadyExists ? 'existing' : 'new'}`;
+    resultHeading.textContent  = alreadyExists ? 'CACHE HIT — UUID REUSED' : 'TRANSFER COMPLETE';
+    if (payload.emailSent) {
+      resultText.textContent = alreadyExists
+        ? 'Existing UUID reused and receiver email dispatched.'
+        : 'Upload successful and receiver email dispatched.';
+    } else if (payload.receiver && payload.emailReason === 'email_not_configured') {
+      resultText.textContent = 'File ready, but SMTP is not configured yet. Share the link manually.';
+    } else if (payload.receiver && payload.emailReason === 'smtp_sender_invalid') {
+      resultText.textContent = 'File uploaded, but Brevo rejected the sender address. Set SMTP_FROM to a verified sender or authenticated domain.';
+    } else if (payload.receiver && payload.emailReason === 'smtp_auth_failed') {
+      resultText.textContent = 'File uploaded, but Brevo rejected the SMTP login. Fix SMTP credentials, then share the link manually for now.';
+    } else {
+      resultText.textContent = alreadyExists
+        ? 'File already existed on server. Previous UUID has been reused.'
+        : 'Upload successful. Share the link manually if email delivery is unavailable.';
+    }
+    shareLinkText.textContent  = payload.file;
+    shareUuidText.textContent  = `UUID :: ${payload.uuid}`;
+    openLink.href              = payload.file;
+  }
+
+  fileInput.addEventListener('change', e => setSelectedFile(e.target.files[0]));
+
+  ['dragenter', 'dragover'].forEach(ev => {
+    dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('dragging'); });
+  });
+
+  ['dragleave', 'drop'].forEach(ev => {
+    dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragging'); });
+  });
+
+  dropzone.addEventListener('drop', e => {
+    const f = e.dataTransfer.files[0];
+    if (!f) return;
+    const dt = new DataTransfer();
+    dt.items.add(f);
+    fileInput.files = dt.files;
+    setSelectedFile(f);
+  });
+
+  uploadForm.addEventListener('reset', () => {
+    clearStatus();
+    resultCard.classList.remove('active');
+    setTimeout(() => setSelectedFile(null), 0);
+    log('form cleared', 'warn');
+  });
+
+  uploadForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!fileInput.files[0]) {
+      setStatus('danger', 'No payload selected. Choose a file first.');
+      log('err: no file selected', 'err');
+      return;
+    }
+    clearStatus();
+    submitButton.disabled = true;
+    submitButton.textContent = '... TRANSMITTING';
+    log(`initiating upload: ${fileInput.files[0].name}`);
+
+    try {
+      const formData = new FormData(uploadForm);
+      const response = await fetch('/api/files', { method: 'POST', body: formData });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || data.message || 'Upload failed.');
+      showResult(data);
+      if (data.emailSent) {
+        setStatus('success', data.existing ? 'Cache hit. UUID reused and email sent.' : 'Upload complete. Share link generated and email sent.');
+        log(`email dispatched to ${data.receiver}`, 'ok');
+      } else if (data.receiver && data.emailReason === 'email_not_configured') {
+        setStatus('info', 'Link ready, but SMTP is not configured. Share manually.');
+        log('smtp not configured; email skipped', 'warn');
+      } else if (data.receiver && data.emailReason === 'smtp_sender_invalid') {
+        setStatus('danger', 'Upload succeeded, but Brevo rejected the sender address. Set SMTP_FROM to a verified sender.');
+        log(`smtp sender invalid: ${data.emailError || 'sender rejected'}`, 'err');
+      } else if (data.receiver && data.emailReason === 'smtp_auth_failed') {
+        setStatus('danger', 'Upload succeeded, but Brevo rejected the SMTP login. Share manually until credentials are fixed.');
+        log(`smtp auth failed: ${data.emailError || 'authentication failed'}`, 'err');
+      } else {
+        setStatus('success', data.existing ? 'Cache hit. UUID reused.' : 'Upload complete. Share link generated.');
+      }
+      log(data.existing ? `cache hit — uuid: ${data.uuid}` : `upload ok — uuid: ${data.uuid}`, 'ok');
+    } catch (err) {
+      setStatus('danger', err.message || 'Transmission error.');
+      log(`error: ${err.message}`, 'err');
+    } finally {
+      submitButton.disabled = false;
+      submitButton.textContent = '▶ EXECUTE TRANSFER';
+    }
+  });
+
+  copyButton.addEventListener('click', async () => {
+    const val = shareLinkText.textContent.trim();
+    if (!val) return;
+    try {
+      await navigator.clipboard.writeText(val);
+      setStatus('success', 'Link copied to clipboard.');
+      log('share link copied to clipboard', 'ok');
+    } catch {
+      setStatus('info', 'Clipboard access failed. Copy manually.');
+    }
+  });
+
+  receiveForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const raw = receiveInput.value.trim();
+    if (!raw) return;
+    let uuid = raw;
+    try {
+      const url = new URL(raw);
+      const segs = url.pathname.split('/').filter(Boolean);
+      uuid = segs[segs.length - 1] || raw;
+    } catch {
+      uuid = raw.split('/').filter(Boolean).pop() || raw;
+    }
+    log(`redirecting to /files/${uuid}`);
+    window.location.href = `/files/${uuid}`;
+  });
+</script>
+</body>
+</html>

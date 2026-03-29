@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const fileSchema = new Schema({
+    originalName : { type : String, required : false},
     filename : { type : String, required : true},
     path : { type : String, required : true},
     size : { type : Number, required : true},
@@ -14,6 +15,5 @@ const fileSchema = new Schema({
 
 
 module.exports = mongoose.model('File', fileSchema);
-
 
 
