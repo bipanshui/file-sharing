@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Download File</title>
+    <style>
+      :root {
+        --bg: #f3efe5;
+        --panel: rgba(255, 252, 247, 0.92);
+        --ink: #1f2933;
+        --muted: #5a6672;
+        --accent: #c26139;
+        --accent-dark: #97451f;
+        --line: rgba(31, 41, 51, 0.1);
+        --shadow: 0 24px 60px rgba(65, 45, 29, 0.18);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Georgia, "Times New Roman", serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(194, 97, 57, 0.22), transparent 32%),
+          radial-gradient(circle at bottom right, rgba(90, 102, 114, 0.16), transparent 28%),
+          linear-gradient(135deg, #efe8db, #f8f4ec 48%, #ebe2d1);
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      .card {
+        width: min(100%, 760px);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        backdrop-filter: blur(8px);
+      }
+
+      .hero {
+        padding: 40px 40px 24px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        color: var(--accent-dark);
+        font-size: 0.8rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2rem, 5vw, 3.5rem);
+        line-height: 0.95;
+      }
+
+      .subtitle {
+        margin: 14px 0 0;
+        max-width: 42rem;
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.7;
+      }
+
+      .content {
+        padding: 32px 40px 40px;
+        display: grid;
+        gap: 24px;
+      }
+
+      .meta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 14px;
+      }
+
+      .meta-card {
+        padding: 18px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid var(--line);
+      }
+
+      .meta-label {
+        margin: 0 0 6px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .meta-value {
+        margin: 0;
+        font-size: 1.05rem;
+        word-break: break-word;
+      }
+
+      .download-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        align-items: center;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 52px;
+        padding: 0 22px;
+        border-radius: 999px;
+        background: var(--accent);
+        color: #fffaf6;
+        text-decoration: none;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        transition: transform 140ms ease, background 140ms ease;
+      }
+
+      .button:hover {
+        background: var(--accent-dark);
+        transform: translateY(-1px);
+      }
+
+      .hint {
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .error {
+        padding: 18px 20px;
+        border-radius: 18px;
+        background: rgba(151, 69, 31, 0.08);
+        border: 1px solid rgba(151, 69, 31, 0.18);
+        color: var(--accent-dark);
+      }
+
+      @media (max-width: 640px) {
+        .hero,
+        .content {
+          padding-left: 22px;
+          padding-right: 22px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <section class="hero">
+        <p class="eyebrow">Shared File</p>
+        <h1>Download ready.</h1>
+        <p class="subtitle">
+          Review the file details below and download it directly from this page.
+        </p>
+      </section>
+
+      <section class="content">
+        <% if (error) { %>
+          <div class="error"><%= error %></div>
+        <% } %>
+
+        <% if (file) { %>
+          <div class="meta">
+            <article class="meta-card">
+              <p class="meta-label">Filename</p>
+              <p class="meta-value"><%= file.filename %></p>
+            </article>
+            <article class="meta-card">
+              <p class="meta-label">Size</p>
+              <p class="meta-value"><%= (file.size / (1024 * 1024)).toFixed(2) %> MB</p>
+            </article>
+            <article class="meta-card">
+              <p class="meta-label">Share ID</p>
+              <p class="meta-value"><%= file.uuid %></p>
+            </article>
+          </div>
+
+          <div class="download-row">
+            <a class="button" href="<%= downloadLink %>">Download File</a>
+            <span class="hint">The original uploaded file will be streamed to your browser.</span>
+          </div>
+        <% } else { %>
+          <p class="hint">
+            This share link is unavailable or has already been removed.
+          </p>
+        <% } %>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,4 +1,5 @@
 const router = require("express").Router();
+const fs = require("fs/promises");
 const multer = require("multer");
 const path = require("path");
 const File = require("../models/file");
@@ -40,7 +41,23 @@ router.post("/", (req, res) => {
 
     //store into database
     try {
+      const existingFile = await File.findOne({
+        originalName: req.file.originalname,
+        size: req.file.size,
+      });
+
+      if (existingFile) {
+        await fs.unlink(req.file.path).catch(() => {});
+
+        return res.json({
+          existing: true,
+          uuid: existingFile.uuid,
+          file: `${process.env.APP_BASE_URL}/files/${existingFile.uuid}`,
+        });
+      }
+
       const file = new File({
+        originalName: req.file.originalname,
         filename: req.file.filename,
         uuid: uuid4(),
         path: req.file.path,
@@ -49,6 +66,8 @@ router.post("/", (req, res) => {
 
       const response = await file.save();
       return res.json({
+        existing: false,
+        uuid: response.uuid,
         file: `${process.env.APP_BASE_URL}/files/${response.uuid}`,
       });
     } catch (saveError) {
@@ -58,7 +77,7 @@ router.post("/", (req, res) => {
     }
   });
 
-  //response -> Link
+   
 });
 
 module.exports = router;
