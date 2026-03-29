@@ -1,48 +1,64 @@
 const router = require("express").Router();
 const multer = require("multer");
 const path = require("path");
-const file = require("../models/file");
-const { v4 : uuid4 } = require("uuid");
+const File = require("../models/file");
+const { v4: uuid4 } = require("uuid");
 
 let storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, 'uploads/'),
-    filename: (req, file, cb) => {
-        const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(file.originalname)}`
-    }
-})
+  destination: (req, file, cb) => cb(null, "uploads/"),
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`;
+    cb(null, uniqueName);
+  },
+});
 
 let upload = multer({
-    storage,
-    limit : { fileSize : 1000000 * 100 }
-}).single('myfile');
+  storage,
+  limits: { fileSize: 1000000 * 100 },
+}).single("myfile");
+
+router.get("/health", (req, res) => {
+  res.status(200).json({
+    message: "Server is healthy",
+  });
+});
 
 //multer is a middleware for handling multipart/form-data
-router.post('/',  (req, res)=>{
-     //validate request
-      if(!req.file){
-         return res.status(400).json({
-            "message" : "file couldn't be found",
-         })
-      }
+router.post("/", (req, res) => {
+  //store file
+  upload(req, res, async (err) => {
+    if (err) {
+      return res.status(500).send({ error: err.message });
+    }
 
-     //store file
-        upload(req, res, async(err)=>{
-            if(err){
-                return res.status(500).send({ error : err.mmessage })
-            }
-            //store into database
-            const file = new file({
-                filename: req.file.filename,
-                uuid: uuid4(),
-                path: req.file.path,
-                size: req.file.size
-            });
+    //validate request
+    if (!req.file) {
+      return res.status(400).json({
+        message: "file couldn't be found",
+      });
+    }
 
-            const response = await file.save();
-            return res.json({ file  : `${process.env.APP_BASE_URL}`})
-        })
+    //store into database
+    try {
+      const file = new File({
+        filename: req.file.filename,
+        uuid: uuid4(),
+        path: req.file.path,
+        size: req.file.size,
+      });
 
-     //response -> Link
+      const response = await file.save();
+      return res.json({
+        file: `${process.env.APP_BASE_URL}/files/${response.uuid}`,
+      });
+    } catch (saveError) {
+      return res.status(500).json({
+        error: saveError.message,
+      });
+    }
+  });
+
+  //response -> Link
 });
 
 module.exports = router;
